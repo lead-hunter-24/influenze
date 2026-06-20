@@ -1,0 +1,185 @@
+"""
+Generate a UNIVERSAL-SCHEMA channel data file for the YT Insights app.
+
+The schema below is channel-agnostic: every metric is derivable for ANY YouTube
+channel from (a) channel stats and (b) a list of videos. Drop a new channel's
+raw data into RAW_CHANNELS and re-run to add it to the app.
+
+Universal variables
+===================
+Channel level:
+  identity    : channelId, handle, title, createdAt, channelAgeDays, topics
+  scale       : subscribers, totalViews, totalVideos
+  efficiency  : avgViewsPerVideo, viewsPerSubscriber, uploadsPerMonth
+  momentum    : subsGained30d, viewsGained30d, videosPublished30d
+Video level (per video):
+  identity    : videoId, title, publishedAt, ageDays, topic
+  format      : durationSeconds, durationMin, titleHasNumber, titleWordCount
+  reach       : views
+  reaction    : likes, comments
+  derived     : engagementRate, likeRate, commentRate,
+                viewsPerDay (velocity), outlierMultiple (views / channel median)
+Aggregates (computed):
+  medianViews, medianEngagement, top3ViewShare,
+  topicAggregates[{topic, count, totalViews, avgViews}]
+"""
+import json, re, os, statistics
+from datetime import date
+
+CAPTURE = date(2026, 6, 20)
+OUTDIR = os.path.join(os.path.dirname(__file__), "data")
+
+# ---------------------------------------------------------------------------
+# RAW DATA  (source: vidiq, captured 2026-06-20). Add more channels here.
+# ---------------------------------------------------------------------------
+RAW_CHANNELS = {
+    "crayon_capital": {
+        "channel": {
+            "channelId": "UCP9RPj_BG0vit2TNM7LuRxA",
+            "handle": "@Crayon_Capital",
+            "title": "Crayon Capital",
+            "createdAt": "2025-03-31",
+            "topics": ["Society", "Knowledge"],
+            "subscribers": 219000,
+            "totalViews": 15712554,
+            "totalVideos": 23,
+            "subsGained30d": 6000,
+            "viewsGained30d": 554808,
+            "videosPublished30d": 2,
+        },
+        # videoId, title, publishedAt, durationISO, views, likes, comments, topic
+        "videos": [
+            ("3QE_q7-cqGI", "Why The Richest Company In History Went Bankrupt", "2026-06-15", "PT15M42S", 38112, 1465, 90, "Business / Biography"),
+            ("A_wtItX_kIE", "The Biggest Lie in Economics (And You Still Believe It)", "2026-05-23", "PT13M22S", 27671, 1048, 83, "Economics"),
+            ("9r-45QPLl-Y", "Petrodollar Explained Like You're 5", "2026-04-30", "PT11M20S", 165706, 5544, 329, "Geopolitics"),
+            ("wu1GfDhAYvE", "Iran War Explained Like You're 5", "2026-04-19", "PT12M11S", 135202, 5282, 658, "Geopolitics"),
+            ("adpt6KW4Jb4", "Margin Call Scandal Explained Like You're 5", "2026-03-30", "PT13M45S", 122207, 3360, 264, "Fraud & Scandal"),
+            ("wOjdbltaXSQ", "The Worst Time to be Rich as a Human", "2026-03-09", "PT20M29S", 377883, 12440, 821, "Economics"),
+            ("sMH8WchxQR8", "Rockefeller: The First Confirmed Billionaire (And How He Did It)", "2026-02-28", "PT20M16S", 1021813, 19351, 527, "Business / Biography"),
+            ("RB-DTXw1Yzw", "Xi Jinping: The Most Powerful Man in China", "2026-02-10", "PT21M1S", 200051, 5501, 432, "Geopolitics"),
+            ("GPgaG9D7S6I", "5000 Years of Gold Explained in 16 Minutes", "2026-01-31", "PT16M6S", 131260, 3773, 345, "Economics"),
+            ("GSkySDNmjV8", "Palantir Technologies Explained Like You're 5", "2026-01-10", "PT15M19S", 664144, 18911, 1129, "Technology / Business"),
+            ("y51JjcymEAY", "The Man Who Built Singapore in One Generation", "2025-12-27", "PT16M9S", 767751, 17398, 1167, "Geopolitics"),
+            ("kx_okFl98Vw", "The AI Bubble Explained Like You're 5", "2025-12-12", "PT12M13S", 396090, 12406, 714, "Technology / Business"),
+            ("rSgS4wNLLDM", "How Jeff Bezos Actually Built Amazon", "2025-11-28", "PT20M13S", 875812, 17060, 617, "Business / Biography"),
+            ("CCXYfrAfW6g", "The Day the Internet Almost Died", "2025-10-27", "PT12M9S", 362709, 9824, 380, "Technology / Business"),
+            ("HawmGu7oNrc", "The Wolf of Wall Street Scam Explained Like You're 5", "2025-10-03", "PT16M33S", 4122583, 77593, 3268, "Fraud & Scandal"),
+            ("p9x9s_-IOOM", "The $9 Billion Blood Test That Never Worked (Theranos)", "2025-09-08", "PT16M21S", 211186, 4593, 359, "Fraud & Scandal"),
+            ("LuEcoqizj0o", "The Great Depression Explained Like You're 5", "2025-08-15", "PT16M29S", 2606358, 42703, 2807, "Economic History"),
+            ("VSbO8vmZNm0", "The $63 BILLION Company That Sold Nothing", "2025-07-19", "PT13M13S", 855267, 18035, 1150, "Fraud & Scandal"),
+            ("_pUOpoihjA4", "Bitcoin Explained Like You're 5", "2025-07-12", "PT10M15S", 103234, 2890, 229, "Economics"),
+            ("EedHneVKmpo", "The Rise of Paypal Explained Like You're 5", "2025-06-25", "PT12M36S", 91407, 3185, 96, "Technology / Business"),
+            ("KE-WJevx-7c", "The 2008 Financial Crisis Explained Like You're 5", "2025-06-15", "PT13M26S", 2205557, 47994, 2889, "Economic History"),
+            ("xhbukTTkwJY", "How One Man Pulled Off a $65 Billion Scam", "2025-05-08", "PT11M34S", 182486, 4549, 215, "Fraud & Scandal"),
+            ("KHLY6SyLvgQ", "Every Financial Crisis Explained in 10 Minutes", "2025-04-22", "PT10M54S", 61803, 1631, 60, "Economic History"),
+        ],
+    },
+}
+
+
+def dur_to_sec(iso):
+    m = re.match(r"PT(?:(\d+)M)?(?:(\d+)S)?", iso)
+    return int(m.group(1) or 0) * 60 + int(m.group(2) or 0)
+
+
+def days_since(d):
+    return (CAPTURE - date.fromisoformat(d)).days
+
+
+def build(slug, raw):
+    ch = raw["channel"]
+    age = days_since(ch["createdAt"])
+    raw_views = [v[4] for v in raw["videos"]]
+    median_views = statistics.median(raw_views)
+
+    videos = []
+    for vid, title, pub, dur, views, likes, comments, topic in raw["videos"]:
+        secs = dur_to_sec(dur)
+        vage = max(days_since(pub), 1)
+        eng = (likes + comments) / views if views else 0
+        videos.append({
+            "videoId": vid,
+            "title": title,
+            "publishedAt": pub,
+            "ageDays": vage,
+            "topic": topic,
+            "durationSeconds": secs,
+            "durationMin": round(secs / 60, 1),
+            "titleHasNumber": bool(re.search(r"\d", title)),
+            "titleWordCount": len(title.split()),
+            "views": views,
+            "likes": likes,
+            "comments": comments,
+            "engagementRate": round(eng * 100, 2),
+            "likeRate": round(likes / views * 100, 2) if views else 0,
+            "commentRate": round(comments / views * 100, 3) if views else 0,
+            "viewsPerDay": round(views / vage),
+            "outlierMultiple": round(views / median_views, 2) if median_views else 0,
+        })
+
+    # topic aggregates
+    topics = {}
+    for v in videos:
+        t = topics.setdefault(v["topic"], {"topic": v["topic"], "count": 0, "totalViews": 0})
+        t["count"] += 1
+        t["totalViews"] += v["views"]
+    for t in topics.values():
+        t["avgViews"] = round(t["totalViews"] / t["count"])
+    topic_aggs = sorted(topics.values(), key=lambda x: -x["avgViews"])
+
+    total_views_sum = sum(raw_views)
+    top3 = sum(sorted(raw_views, reverse=True)[:3])
+
+    channel = {
+        "slug": slug,
+        "channelId": ch["channelId"],
+        "handle": ch["handle"],
+        "title": ch["title"],
+        "createdAt": ch["createdAt"],
+        "channelAgeDays": age,
+        "topics": ch["topics"],
+        "subscribers": ch["subscribers"],
+        "totalViews": ch["totalViews"],
+        "totalVideos": ch["totalVideos"],
+        "avgViewsPerVideo": round(ch["totalViews"] / ch["totalVideos"]),
+        "viewsPerSubscriber": round(ch["totalViews"] / ch["subscribers"], 1),
+        "uploadsPerMonth": round(ch["totalVideos"] / (age / 30), 2),
+        "subsGained30d": ch["subsGained30d"],
+        "viewsGained30d": ch["viewsGained30d"],
+        "videosPublished30d": ch["videosPublished30d"],
+        "capturedAt": CAPTURE.isoformat(),
+        "aggregates": {
+            "medianViews": round(median_views),
+            "medianEngagement": round(statistics.median(v["engagementRate"] for v in videos), 2),
+            "medianViewsPerDay": round(statistics.median(v["viewsPerDay"] for v in videos)),
+            "top3ViewSharePct": round(top3 / total_views_sum * 100, 1),
+            "topicAggregates": topic_aggs,
+        },
+        "videos": videos,
+    }
+    return channel
+
+
+def main():
+    os.makedirs(os.path.join(OUTDIR, "channels"), exist_ok=True)
+    index = []
+    for slug, raw in RAW_CHANNELS.items():
+        data = build(slug, raw)
+        path = os.path.join(OUTDIR, "channels", f"{slug}.json")
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+        index.append({
+            "slug": slug,
+            "title": data["title"],
+            "handle": data["handle"],
+            "subscribers": data["subscribers"],
+            "totalVideos": data["totalVideos"],
+        })
+        print(f"wrote {path}  ({len(data['videos'])} videos)")
+    with open(os.path.join(OUTDIR, "index.json"), "w", encoding="utf-8") as f:
+        json.dump(index, f, indent=2)
+    print(f"wrote index.json  ({len(index)} channel(s))")
+
+
+if __name__ == "__main__":
+    main()

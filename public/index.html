@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>YT Insights — Channel Analytics + AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="logo">▶</span>
+      <span>YT Insights</span>
+      <span class="tag">analytics + AI</span>
+    </div>
+    <div class="picker">
+      <svg class="picker-ic" viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M10 8l6 4-6 4V8z"/><rect x="2" y="4" width="20" height="16" rx="3" fill="none" stroke="currentColor" stroke-width="1.6"/></svg>
+      <select id="channelSelect" aria-label="Select channel"></select>
+    </div>
+  </header>
+
+  <main id="app">
+    <!-- Channel hero -->
+    <section class="hero">
+      <div class="hero-id">
+        <div class="avatar" id="chAvatar">C</div>
+        <div>
+          <h1 id="chTitle">—</h1>
+          <p id="chMeta" class="muted"></p>
+          <div class="chips" id="chChips"></div>
+        </div>
+      </div>
+      <a id="chLink" class="ghost-btn" target="_blank" rel="noopener">YouTube ↗</a>
+    </section>
+
+    <!-- Metric cards -->
+    <section id="cards" class="cards"></section>
+
+    <!-- AI panel (front and center) -->
+    <section class="panel ai">
+      <div class="panel-head">
+        <h2><span class="spark">✦</span> Ask the data</h2>
+        <span class="badge">Claude Haiku</span>
+      </div>
+      <p class="muted small">Ask anything about the selected channel — Haiku reads its full stats and answers in plain English.</p>
+      <div class="suggestions" id="suggestions"></div>
+      <form id="askForm" class="askRow">
+        <input id="askInput" type="text" placeholder="e.g. Which video has the best momentum right now, and why?" autocomplete="off" />
+        <button id="askBtn" type="submit">Ask →</button>
+      </form>
+      <div id="answer" class="answer hidden"></div>
+    </section>
+
+    <!-- Charts -->
+    <section class="grid2">
+      <div class="panel">
+        <div class="panel-head"><h2>Views per day</h2><span class="hint">age-normalized momentum</span></div>
+        <div class="chartWrap tall"><canvas id="vpdChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Engagement rate</h2><span class="hint">(likes + comments) ÷ views</span></div>
+        <div class="chartWrap tall"><canvas id="engChart"></canvas></div>
+      </div>
+    </section>
+
+    <section class="grid2">
+      <div class="panel">
+        <div class="panel-head"><h2>Avg views by topic</h2><span class="hint">what to make more of</span></div>
+        <div class="chartWrap"><canvas id="topicChart"></canvas></div>
+      </div>
+      <div class="panel">
+        <div class="panel-head"><h2>Length vs views</h2><span class="hint">does runtime matter?</span></div>
+        <div class="chartWrap"><canvas id="scatterChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Table -->
+    <section class="panel">
+      <div class="panel-head"><h2>All videos</h2><span class="hint" id="videoCount"></span></div>
+      <div class="tableWrap">
+        <table id="videoTable">
+          <thead>
+            <tr>
+              <th>Title</th><th>Published</th><th>Topic</th><th class="num">Length</th>
+              <th class="num">Views</th><th class="num">Views/day</th>
+              <th class="num">Eng %</th><th class="num">Outlier×</th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="foot muted small">
+    <strong>Universal variables</strong> — subscribers · total views · videos · avg views/video · views/subscriber · uploads/month ·
+    30-day growth · per-video views, likes, comments, engagement, like &amp; comment rate, views/day velocity, outlier multiple,
+    duration, topic. Snapshot data via vidiq.
+  </footer>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

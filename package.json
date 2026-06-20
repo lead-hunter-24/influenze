@@ -1,0 +1,15 @@
+{
+  "name": "yt-insights",
+  "version": "1.0.0",
+  "description": "Select any YouTube channel, see its full statistics, and ask Claude Haiku for natural-language insights.",
+  "type": "module",
+  "scripts": {
+    "start": "node --env-file-if-exists=.env server.js",
+    "dev": "node --env-file-if-exists=.env --watch server.js"
+  },
+  "engines": { "node": ">=22" },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.69.0",
+    "express": "^4.21.2"
+  }
+}
