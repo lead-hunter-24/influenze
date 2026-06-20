@@ -68,7 +68,7 @@ function renderCards(ch) {
     .join("");
 }
 
-const C = { grid: "rgba(255,255,255,.07)", tick: "#9097a3", coral: "#ef4444", green: "#22c08a", purple: "#8b82f0" };
+const C = { grid: "rgba(17,24,39,.08)", tick: "#6b7280", coral: "#dc2626", green: "#059669", purple: "#7c3aed" };
 Chart.defaults.color = C.tick;
 Chart.defaults.font.family = "system-ui, sans-serif";
 
