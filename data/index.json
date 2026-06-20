@@ -12,5 +12,12 @@
     "handle": "@HypotheticallyHQ",
     "subscribers": 297000,
     "totalVideos": 33
+  },
+  {
+    "slug": "wallace",
+    "title": "Wallace",
+    "handle": "@WallaceAnimation",
+    "subscribers": 206000,
+    "totalVideos": 34
   }
 ]
