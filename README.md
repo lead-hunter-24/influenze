@@ -60,8 +60,32 @@ instructed to use only the supplied data and never invent numbers.
 2. `python generate_channel_data.py` — regenerates the JSON and `index.json`.
 3. Refresh the page; the new channel appears in the dropdown automatically.
 
-## Deploy
+## Deploy — CI/CD to Google Cloud Run
 
-It's a standard Node app. Set `ANTHROPIC_API_KEY` (and optional `PORT`) in the host's
-environment and run `node server.js`. Works on any Node 18+ host (Render, Railway,
-Fly, a VPS, etc.). Keep `.env` out of git (already in `.gitignore`).
+Every push to `main` builds and deploys to Cloud Run via GitHub Actions
+(`.github/workflows/deploy.yml`). Auth uses **Workload Identity Federation** — no
+service-account JSON keys are stored in GitHub.
+
+**One-time GCP setup** (run with a gcloud account that owns the target project):
+
+```bash
+gcloud auth login                       # account that owns silken-bastion-499817-m0
+export ANTHROPIC_API_KEY=sk-ant-...      # your real key
+bash setup-gcp.sh                        # creates SA + WIF + secret, sets GitHub secrets
+```
+
+`setup-gcp.sh` provisions:
+- Required APIs (run, cloudbuild, secretmanager, artifactregistry, iamcredentials)
+- A deployer service account with the right roles
+- A Workload Identity pool/provider scoped to `lead-hunter-24/influenze`
+- A Secret Manager secret `anthropic-api-key` (the workflow injects it into the service)
+- GitHub Actions secrets: `GCP_PROJECT_ID`, `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT`
+
+After that, push to `main` (or run the workflow manually) → the app deploys and the
+workflow prints the public URL. Region defaults to `us-central1` (edit in the workflow).
+
+**Manual deploy** (no CI): `gcloud run deploy yt-insights --source . --region us-central1 --allow-unauthenticated --set-secrets ANTHROPIC_API_KEY=anthropic-api-key:latest`
+
+It's also a standard Node 22 app (`Dockerfile` included), so it runs anywhere —
+Render, Railway, Fly, a VPS — just set `ANTHROPIC_API_KEY` (and optional `PORT`).
+Keep `.env` out of git (already in `.gitignore`).
