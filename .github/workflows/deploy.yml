@@ -3,6 +3,10 @@ name: Deploy to Cloud Run
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - '**.md'
+      - 'setup-gcp.sh'
+      - 'generate_channel_data.py'
   workflow_dispatch: {}
 
 env:

@@ -50,6 +50,11 @@ else
   printf "%s" "$ANTHROPIC_API_KEY" | gcloud secrets versions add anthropic-api-key --data-file=-
 fi
 
+echo ">> Granting the Cloud Run runtime SA (compute default) access to the secret"
+gcloud secrets add-iam-policy-binding anthropic-api-key \
+  --member="serviceAccount:${PROJECT_NUMBER}-compute@developer.gserviceaccount.com" \
+  --role="roles/secretmanager.secretAccessor" -q >/dev/null
+
 echo ">> Creating Workload Identity pool + provider"
 gcloud iam workload-identity-pools create "$POOL" \
   --location=global --display-name="GitHub Actions pool" 2>/dev/null || true

@@ -2,6 +2,14 @@
 
 Open a webpage, **pick any YouTube channel**, see its full statistics and charts, and **ask Claude Haiku questions** about it in plain English. Haiku reads the selected channel's data and answers with real numbers.
 
+**Live:** https://yt-insights-dmmdhzihja-uc.a.run.app (deployed to Cloud Run via GitHub Actions)
+
+> **One step to enable the AI box:** the Secret Manager secret currently holds a placeholder. Set your real key and roll a new revision:
+> ```bash
+> printf '%s' 'sk-ant-YOURKEY' | gcloud secrets versions add anthropic-api-key --data-file=- --project silken-bastion-499817-m0
+> gcloud run services update yt-insights --region us-central1 --project silken-bastion-499817-m0
+> ```
+
 ## What's inside
 
 ```
