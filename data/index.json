@@ -19,5 +19,12 @@
     "handle": "@WallaceAnimation",
     "subscribers": 206000,
     "totalVideos": 34
+  },
+  {
+    "slug": "odd_dude_explained",
+    "title": "Odd Dude Explained",
+    "handle": "@OddDudeExplained",
+    "subscribers": 41200,
+    "totalVideos": 30
   }
 ]
